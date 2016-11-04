@@ -1,0 +1,247 @@
+<!-- 
+# TalkTalkTalk
+#
+# is an easy-installable small chat room, with chat history. 
+# 
+# author:  Joseph Ernest (twitter: @JosephErnest)
+# url:     http://github.com/josephernest/talktalktalk
+# license: MIT license
+# date:    2016/11/04 
+ -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />    
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style type="text/css">
+* { margin: 0; padding: 0; font-family: monospace; }
+html { overflow-y: scroll; }
+#writing { width: 100%; height: 10%; position: fixed; height: 100px; bottom: 0; resize: none; }
+#wrapper { width: 75%; margin: 10px 10px 110px 10px; word-wrap: break-word; }
+#right { width: 20%; top: 0; left: 80%; position: fixed; height: calc(100% - 120px); padding: 10px 0 10px 0; overflow-y: auto; overflow-x: hidden; }
+#username { padding: 2px 0 0px 1px; display: inline-block; border-bottom: 1px dashed #CCC; cursor: pointer; margin-bottom: 1px; }
+#usernameinput { display: none; width: 80%; }
+#previous { margin-bottom: 20px; display: block; }
+#popup { z-index: 10; position: fixed; left: 20%; width:60%; top:40%; border: solid black 1px; background-color: white; text-align: center; padding: 30px 10px 30px 10px; color: black !important; }
+.hidden { display: none !important; }
+.opaque { color: #AAA; }
+@media (max-width: 500px) { #right { width: 120px; left: calc(100% - 120px); } #wrapper { width: calc(100% - 130px); }
+}
+</style>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+</head>
+<body>
+<div id="right">TALKTALKTALK<br>############<br><br>USERNAME<br><span id="username">user1</span><input value="user1" id="usernameinput" maxlength="16" /><br><br>ONLINE USERS<div id="connected"></div></div>
+<div id="wrapper">
+<a id="previous" href="" class="hidden">Load previous messages...</a>
+<div id="main">
+</div>
+</div>
+<textarea id="writing"></textarea>
+<div id="popup" class="hidden popup"></div>
+<script type="text/javascript">
+var randomname = 'user' + Math.floor((Math.random() * 1000) + 1);
+var ws;
+var lastPong;
+var users;
+var firstId;
+var lastId;
+
+function is_scrolled_end() { // See http://stackoverflow.com/a/40370876/1422096
+    return ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight);
+}
+
+function scroll_end () {
+    document.body.scrollTop = document.body.scrollHeight;                           // both useful because this one not working in FF47
+    document.documentElement.scrollTop = document.documentElement.scrollHeight;     // both useful because this one not working in Chrome 43 Android
+}
+
+function scroll_top () {
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+}    
+
+function ready() {
+    lastPong = undefined;
+    users = [];
+    firstId = Infinity;
+    lastId = -1;
+
+    function disconnected_message () {
+        $('#popup').text('Click anywhere to reload the page.').removeClass('hidden');
+        $(':not(.popup)').addClass('opaque');
+        $(document).click(function() { $(document).off('click'); ws.close(); ready(); })
+    }
+
+    if (!window.WebSocket) {
+        $('#popup').text('Your browser is not supported, please use another browser.').removeClass('hidden');
+        $('#writing').prop('disabled', true);
+        $(':not(#popup)').addClass('opaque');
+    }
+    else {
+        $('#main').text('');
+        $('#writing').val('');
+    }
+
+    if (localStorage.getItem("username") === null)
+        $('#username').text(randomname);
+    else 
+        $('#username').text(localStorage.getItem("username"));
+
+    ws = new WebSocket(location.href.replace('http', 'ws') + 'ws');        // replace replaces only the first occurence
+       
+    $(window).on('beforeunload', function() { 
+        ws.close(); 
+    });
+
+    ws.onopen = function() { 
+        ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));
+        lastPong = Date.now();
+        $('#popup').addClass('hidden'); $(':not(#popup)').removeClass('opaque');
+        $('#writing').focus();  
+        scroll_end();
+        setTimeout(function() { scroll_end(); }, 200);  // useful on touch devices, when keyboard opens
+    };
+
+    ws.onclose = function() { 
+        setTimeout(function() { 
+            if (ws.readyState != 0 && ws.readyState != 1)
+                disconnected_message();
+         }, 200);
+    };    
+
+    setInterval(function() {
+        ws.send('ping');
+        if (Date.now() - lastPong > 10000) { // disconnected from internet or phone idle mode; in both cases, ws.readyState can be 1 (OPEN) so we can't use that
+            ws.send('ping');   // this is your last chance ! we send a packet now, and if in 1 second, nothings happen, this means we're dead
+            setTimeout( function() {
+                if (Date.now() - lastPong > 10000)  // you missed your last chance !
+                    disconnected_message();         // disconnected from internet
+                else                                // ok the phone was just idle, let's resume
+                    ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));  // let's send username again, so that other users see me
+            }, 1000);
+        }
+    }, 5000);
+
+    $('#previous').click(function(e) {
+        ws.send(JSON.stringify({'type': 'messagesbefore', 'id': firstId}));
+        e.preventDefault();
+        return false;
+    });
+
+    ws.onmessage = function(e) { 
+        lastPong = Date.now();
+        if (e['data'].slice(0,2) === 'id') {
+            var serverlastid = e['data'].slice(2);
+            if (serverlastid != lastId) { // some messages were lost
+                ws.send(JSON.stringify({'type': 'messagesafter', 'id': lastId}));
+            }
+            return;
+        }
+        var data = JSON.parse(e['data']);
+        if (data['type'] === 'message') {
+            if (data['id'] > lastId + 1) {  // some messages were lost
+                ws.send(JSON.stringify({'type': 'messagesafter', 'id': lastId}));
+                return;
+            }
+            lastId = data['id'];
+            $('#main').append(data['username'] + ': ' + data['message'] + '<br>'); 
+            if (is_scrolled_end())
+                scroll_end();
+        }
+        else if (data['type'] === 'messages') {
+            var newmessages = document.createDocumentFragment();
+            var messagelist = data['messages'];
+            for (var i = 0; i < messagelist.length; i++) {
+                var msg = JSON.parse(messagelist[i]);
+                if (msg['id'] <= lastId)       // message already added 
+                    continue;
+                $(newmessages).append(msg['username'] + ': ' + msg['message'] + '<br>');
+                firstId = Math.min(firstId, msg['id'])
+                lastId = Math.max(lastId, msg['id']);
+            }
+            if (data['before'] == 1)
+                $('#main').prepend(newmessages); 
+            else
+                $('#main').append(newmessages);
+            if (firstId > 0 && firstId != Infinity)
+                $('#previous').removeClass('hidden');
+            else
+                $('#previous').addClass('hidden');
+            if (data['before'] == 1)
+                scroll_top();
+            else
+                scroll_end();
+        }
+        else if (data['type'] === 'userlist') {
+            users = data['connected'];
+            $('#connected').html(users.join('<br>'));         // or .map(x => `${x}<br>`).join('')
+        }
+    };
+
+    $('#username').on('click', function(e) { 
+        $('#username').hide(); 
+        $('#usernameinput').val($('#username').text()).show().focus(); 
+        e.preventDefault(); 
+        return false; 
+    });
+
+    $('#writing').on('click', function(e) {             // trick for touch devices: when phone keyboard opens, we won't be scrolled-end anymore, so force it
+        if (is_scrolled_end())
+            setTimeout(function() { scroll_end(); }, 200);
+    });
+
+    $('#writing').keydown(function(e) {
+        if (e.keyCode == 13 && !e.shiftKey) {
+            ws.send(JSON.stringify({ type: 'message', username: $('#username').text(), message: $('#writing').val().trim() }));
+            $('#writing').val('');     
+            e.preventDefault();  
+        }
+        if (e.keyCode == 9) {                   // see http://stackoverflow.com/a/40319943/1422096
+            var input = document.getElementById('writing');
+            var patt = /\b@?(\S+)$/;
+            e.preventDefault();
+            var start = input.selectionStart;
+            var seg = input.value.slice(0, start);
+            var match = (seg.match(patt) || [])[0];
+            if (!match) { return; }
+            var idx = users.findIndex(function (x) { return x.startsWith(match); });
+            if (idx < 0) { return; }
+            var replace = users[users[idx] === match ? (idx + 1) % users.length : idx];
+            var newSeg = seg.replace(patt, replace);
+            input.value = newSeg + input.value.slice(start);
+            input.setSelectionRange(newSeg.length, newSeg.length);
+        }
+    });
+
+    $('#usernameinput').on('blur', function(e){
+         if ($('#usernameinput').val().trim() !== '') 
+                $('#username').text($('#usernameinput').val());
+            else 
+                $('#username').text(randomname);
+            localStorage.setItem("username", $('#username').text());
+            $('#usernameinput').hide();
+            $('#username').show();
+            ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));
+            e.preventDefault();
+    });
+
+    $('#usernameinput').keydown(function(e) {
+        if (e.keyCode == 13) {
+            $('#usernameinput').blur();
+        }
+        if (e.keyCode == 27) {
+            $('#usernameinput').val($('#username').text()).hide();
+            $('#username').show();
+            e.preventDefault();
+            return false;
+        }
+    });
+}
+
+$(document).ready(ready);
+
+</script>
+</body>
+</html>

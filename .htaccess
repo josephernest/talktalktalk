@@ -1,0 +1,5 @@
+RewriteEngine On
+RewriteCond %{HTTP:Upgrade} =websocket [NC]
+RewriteRule (.*)      ws://localhost:9000/ws [P,L]
+RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+RewriteRule ^(.*)$    http://localhost:9000/$1 [P,L]
