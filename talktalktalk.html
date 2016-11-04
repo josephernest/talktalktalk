@@ -146,7 +146,7 @@ function ready() {
                 return;
             }
             lastId = data['id'];
-            $('#main').append(data['username'] + ': ' + data['message'] + '<br>'); 
+            $('#main').append('<b>' + data['username'] + '</b>: ' + data['message'] + '<br>'); 
             if (is_scrolled_end())
                 scroll_end();
         }
@@ -157,7 +157,7 @@ function ready() {
                 var msg = JSON.parse(messagelist[i]);
                 if (data['before'] != 1 && msg['id'] <= lastId)       // message already added 
                     continue;
-                $(newmessages).append(msg['username'] + ': ' + msg['message'] + '<br>');
+                $(newmessages).append('<b>' + msg['username'] + '</b>: ' + msg['message'] + '<br>');
                 firstId = Math.min(firstId, msg['id'])
                 lastId = Math.max(lastId, msg['id']);
             }
