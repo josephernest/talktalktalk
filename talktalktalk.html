@@ -108,7 +108,7 @@ function ready() {
         setTimeout(function() { 
             if (ws.readyState != 0 && ws.readyState != 1)
                 disconnected_message();
-         }, 200);
+         }, 2000);
     };    
 
     setInterval(function() {
