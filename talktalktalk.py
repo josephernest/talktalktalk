@@ -65,6 +65,8 @@ def main():
         while True:
             receivedmsg = ws.receive()
             if receivedmsg is not None:
+                if len(receivedmsg) > 16384:      # this user is probably a spammer
+                    break
                 pings[ws] = time.time()
                 if receivedmsg == 'ping':         # ping/pong packet to make sure connection is still alive
                     ws.send('id' + str(idx-1))    # send the latest message id in return

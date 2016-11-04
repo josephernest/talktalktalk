@@ -155,7 +155,7 @@ function ready() {
             var messagelist = data['messages'];
             for (var i = 0; i < messagelist.length; i++) {
                 var msg = JSON.parse(messagelist[i]);
-                if (msg['id'] <= lastId)       // message already added 
+                if (data['before'] != 1 && msg['id'] <= lastId)       // message already added 
                     continue;
                 $(newmessages).append(msg['username'] + ': ' + msg['message'] + '<br>');
                 firstId = Math.min(firstId, msg['id'])
