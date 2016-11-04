@@ -6,7 +6,7 @@ TalkTalkTalk
 ![](http://gget.it/husi2by3/screenshot1_575.jpg) ![](http://gget.it/k9oj75rs/screenshotphone_5.jpg)
 
 
-Local install
+Installation
 ----
 The best way to test TalkTalkTalk is to install it locally on a Windows or Linux machine. You need to have Python installed. Just do:
 
