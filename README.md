@@ -57,7 +57,7 @@ FAQ
 Q: How to send messages? Is there a way to get username autocompletion like in IRC?  
 A: Use `<ENTER>` to send messages. Use `<TAB>` to autocomplete usernames, example: `us` + `<TAB>` will give `user1`, then `user2`, etc. It also works with `@<username>`.
 
-Q: How to find the date and time of the messages?
+Q: How to find the date and time of the messages?  
 A: Hover over the messages, and a tooltip will show the date and time.
 
 Q: Tech question: why use WebSocket instead of good old [polling](http://stackoverflow.com/a/12855533/1422096) method?  
