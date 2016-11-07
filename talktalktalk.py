@@ -8,12 +8,11 @@
 # author:  Joseph Ernest (twitter: @JosephErnest)
 # url:     http://github.com/josephernest/talktalktalk
 # license: MIT license
-# date:    2016/11/04 
 
 
 import sys, time, json, bleach, time, threading, dumbdbm
 import daemon
-from bottle import route, run, view, request, post, ServerAdapter, get
+from bottle import route, run, view, request, post, ServerAdapter, get, static_file
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 
@@ -79,7 +78,7 @@ def main():
                         message = (bleach.clean(msg['message'])).strip().encode('utf8')
                         username = (bleach.clean(msg['username'])).strip().encode('utf8')
                         if message and username:
-                            s = json.dumps({'type' : 'message', 'message': message, 'username': username, 'id': idx})
+                            s = json.dumps({'type' : 'message', 'message': message, 'username': username, 'id': idx, 'datetime': int(time.time())})
                             db[str(idx)] = s                # Neither dumbdbm nor shelve module allow integer as key... I'm still looking for a better solution!
                             idx += 1
                             for u in users.keys():
@@ -110,6 +109,10 @@ def main():
     def index():
         context = {'request': request}
         return (context)
+
+    @route('/popsound.mp3')
+    def popsound():
+        return static_file('popsound.mp3', root='.')        
 
     run(host="127.0.0.1", port=9000, debug=True, server=GeventWebSocketServer)
 
