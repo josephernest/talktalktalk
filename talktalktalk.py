@@ -10,7 +10,12 @@
 # license: MIT license
 
 
-import sys, time, json, bleach, time, threading, dumbdbm
+PORT = 9000
+HOST = "127.0.0.1"
+ADMINNAME = 'admin'        # this username will be available if *and only if* the following username is entered in the input field:
+ADMINHIDDENNAME = 'adminxyz'
+
+import sys, time, json, bleach, time, threading, dumbdbm, random, re
 import daemon
 from bottle import route, run, view, request, post, ServerAdapter, get, static_file
 from gevent import pywsgi
@@ -40,6 +45,17 @@ def main():
         for u in users.keys():
             u.send(json.dumps({'type' : 'userlist', 'connected': users.values()}))
 
+    def clean_username(usr, ws):
+        username = bleach.clean(usr).encode('utf8')     
+        username = re.sub('[‍ :]', '', username)      # removes " ", ":", and this evil char http://unicode-table.com/fr/200D/
+        if username.lower() == ADMINNAME or username == '':
+            username = 'user' + str(random.randint(0,1000))
+            ws.send(json.dumps({'type' : 'usernameunavailable', 'username' : username}))
+        elif username.lower() == ADMINHIDDENNAME:
+            username = ADMINNAME
+            ws.send(json.dumps({'type' : 'displayeduser', 'username' : username}))
+        return username            
+
     def dbworker():        # when a user disappears during more than 30 seconds (+/- 10), remove him/her from the userlist
         while True:
             userlistchanged = False
@@ -51,7 +67,6 @@ def main():
                     userlistchanged = True
             if userlistchanged:
                 send_userlist()
-
             time.sleep(10)
 
     dbworkerThread = threading.Thread(target=dbworker)
@@ -69,33 +84,39 @@ def main():
                 pings[ws] = time.time()
                 if receivedmsg == 'ping':         # ping/pong packet to make sure connection is still alive
                     ws.send('id' + str(idx-1))    # send the latest message id in return
-                    if ws not in users:
-                        users[ws] = username
-                        send_userlist()
+                    if ws not in users:           # was deleted by dbworker
+                        ws.send(json.dumps({'type' : 'username'}))
                 else:
                     msg = json.loads(receivedmsg)
                     if msg['type'] == 'message':
                         message = (bleach.clean(msg['message'])).strip().encode('utf8')
-                        username = (bleach.clean(msg['username'])).strip().encode('utf8')
-                        if message and username:
-                            s = json.dumps({'type' : 'message', 'message': message, 'username': username, 'id': idx, 'datetime': int(time.time())})
+
+                        if ws not in users:         # is this really mandatory ?
+                            username = clean_username(msg['username'], ws)       
+                            users[ws] = username
+                            send_userlist()
+
+                        if message:
+                            s = json.dumps({'type' : 'message', 'message': message, 'username': users[ws], 'id': idx, 'datetime': int(time.time())})
                             db[str(idx)] = s                # Neither dumbdbm nor shelve module allow integer as key... I'm still looking for a better solution!
                             idx += 1
                             for u in users.keys():
                                 u.send(s)
+
                     elif msg['type'] == 'messagesbefore':
                         idbefore = msg['id']
                         ws.send(json.dumps({'type' : 'messages', 'before': 1, 'messages': [db[str(i)] for i in range(max(0,idbefore - 100),idbefore)]}))
+
                     elif msg['type'] == 'messagesafter':
                         idafter = msg['id']
                         ws.send(json.dumps({'type' : 'messages', 'before': 0, 'messages': [db[str(i)] for i in range(idafter,idx)]}))
+
                     elif msg['type'] == 'username':
-                        username = (bleach.clean(msg['username'])).strip().encode('utf8')
-                        if username:
-                            if ws not in users:          # welcome new user
-                                ws.send(json.dumps({'type' : 'messages', 'before': 0, 'messages': [db[str(i)] for i in range(max(0,idx - 100),idx)]}))
-                            users[ws] = username
-                            send_userlist()
+                        username = clean_username(msg['username'], ws)
+                        if ws not in users:          # welcome new user
+                            ws.send(json.dumps({'type' : 'messages', 'before': 0, 'messages': [db[str(i)] for i in range(max(0,idx - 100),idx)]}))
+                        users[ws] = username
+                        send_userlist()
             else:
                 break
         if ws in users:
@@ -114,7 +135,7 @@ def main():
     def popsound():
         return static_file('popsound.mp3', root='.')        
 
-    run(host="127.0.0.1", port=9000, debug=True, server=GeventWebSocketServer)
+    run(host=HOST, port=PORT, debug=True, server=GeventWebSocketServer)
 
 class talktalktalk(daemon.Daemon):
     def run(self):
@@ -124,7 +145,7 @@ if len(sys.argv) == 1:           # command line interactive mode
     main()
 
 elif len(sys.argv) == 2:         # daemon mode
-    daemon = talktalktalk(pidfile='_.pid')
+    daemon = talktalktalk(pidfile='_.pid', stdout='log.txt', stderr='log.txt')
     
     if 'start' == sys.argv[1]: 
         daemon.start()

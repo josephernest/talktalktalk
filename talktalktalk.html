@@ -27,16 +27,16 @@ html { overflow-y: scroll; }
 #popup { z-index: 10; position: fixed; left: 20%; width:60%; top:40%; border: solid black 1px; background-color: white; text-align: center; padding: 30px 10px 30px 10px; color: black !important; }
 .hidden { display: none !important; }
 .opaque { color: #AAA; }
-@media (max-width: 500px) { #right { width: 120px; left: calc(100% - 120px); } #wrapper { width: calc(100% - 130px); }
-}
+@media (max-width: 500px) { #right { width: 120px; left: calc(100% - 120px); } #wrapper { width: calc(100% - 130px); } #banner { display: none; } }
 </style>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 </head>
 <body>
+<a id="banner" href="https://github.com/josephernest/talktalktalk"><img style="position: fixed; top: 0; right: 0; border: 0; width: 115px;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"></a>
 <div id="right">
-TALKTALKTALK<br>############<br><br>
+TALKTALKTALK<br>############<br><br><br>
 <div id="notifications">NOTIFICATIONS<br><span id="notificationswitch" class="dashed">on</span><br><br></div>
-USERNAME<br><span id="username" class="dashed">user1</span><input value="user1" id="usernameinput" maxlength="16" /><br><br>
+USERNAME<br><span id="username" class="dashed">user</span><input value="user1" id="usernameinput" maxlength="16" /><br><br>
 ONLINE USERS<div id="connected"></div>
 </div>
 <div id="wrapper">
@@ -49,6 +49,7 @@ ONLINE USERS<div id="connected"></div>
 <script type="text/javascript">
 var popsound = new Audio('popsound.mp3');
 var randomname = 'user' + Math.floor((Math.random() * 1000) + 1);
+var displayeduser;
 var ws;
 var lastPong;
 var users;
@@ -70,7 +71,7 @@ function scroll_top () {
 }    
 
 function add_urls(s) {
-    return s.replace(/(https?:\/\/[^ ]+)/g, '<a href="$1">$1</a>');
+    return s.replace(/(https?:\/\/[^ ]+)/g, '<a href="$1" target="_blank">$1</a>');
 }
 
 function timeConverter(t) {     // http://stackoverflow.com/a/40449006/1422096
@@ -114,10 +115,16 @@ function ready() {
     }
 
     function disconnected_message () {
-        $('#popup').text('Click anywhere to reload the page.').removeClass('hidden');
+        $('#popup').text('Click anywhere or press any key to reload the page.').removeClass('hidden');
         $(':not(.popup)').addClass('opaque');
-        $(document).click(function() { $(document).off('click'); ws.close(); ready(); })
+        $(document).on('click keydown', function() { $(document).off('click keydown'); $(document).off('keydown'); ws.close(); ready(); })
     }
+
+    function usernamechanged_message () {
+        $('#popup').text('Your username has been changed because the one you entered is reserved.').removeClass('hidden');
+        $(':not(.popup)').addClass('opaque');
+        $(document).on('click keydown', function() { $(document).off('click keydown'); $('#popup').addClass('hidden'); $(':not(#popup)').removeClass('opaque'); })
+    }    
 
     if (!window.WebSocket) {
         $('#popup').text('Your browser is not supported, please use another browser.').removeClass('hidden');
@@ -129,8 +136,10 @@ function ready() {
         $('#writing').val('');
     }
 
-    if (localStorage.getItem("username") === null)
+    if (localStorage.getItem("username") === null || localStorage.getItem("username") === '') {
         $('#username').text(randomname);
+        localStorage.setItem("username", $('#username').text());
+    }
     else 
         $('#username').text(localStorage.getItem("username"));
 
@@ -194,7 +203,7 @@ function ready() {
             $('#main').append('<p title="' + timeConverter(data['datetime']) + '"><b>' + data['username'] + '</b>: ' + add_urls(data['message']) + '</p>');
             if (is_scrolled_end())
                 scroll_end();
-            if (data['username'] !== $('#username').text() && $('#notificationswitch').text() === 'on') {
+            if (data['username'] !== $('#username').text() && data['username'] !== displayeduser && $('#notificationswitch').text() === 'on') {
                 popsound.load(); popsound.play();
             }
         }
@@ -222,9 +231,20 @@ function ready() {
             else
                 scroll_end();
         }
-        else if (data['type'] === 'userlist') {
+        else if (data['type'] === 'userlist') {  // server sends the userlist to clients
             users = data['connected'];
             $('#connected').html(users.join('<br>'));         // or .map(x => `${x}<br>`).join('')
+        }
+        else if (data['type'] === 'username') {  // server asks to (re)send username
+            ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));
+        }
+        else if (data['type'] === 'usernameunavailable') {
+            $('#username').text(data['username']);
+            localStorage.setItem("username", $('#username').text());
+            usernamechanged_message();
+        }
+        else if (data['type'] === 'displayeduser') {
+            displayeduser = data['username'];
         }
     };
 
@@ -299,5 +319,6 @@ function ready() {
 $(document).ready(ready);
 
 </script>
+
 </body>
 </html>

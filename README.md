@@ -59,6 +59,9 @@ FAQ
 Q: How to send messages? Is there a way to get username autocompletion like in IRC?  
 A: Use `<ENTER>` to send messages. Use `<TAB>` to autocomplete usernames, example: `us` + `<TAB>` will give `user1`, then `user2`, etc. It also works with `@<username>`.
 
+Q: Is there a way to prevent a particular username from being used by anyone except me?  
+A: The username `admin` is available *if and only if* the username `adminxyz` is entered in the input box. Change `adminxyz` to a private password in the beginning of `talktalktalk.py`, and as a result **noone else than you will be able to use the username `admin`.**
+
 Q: How to find the date and time of the messages?  
 A: Hover over the messages, and a tooltip will show the date and time.
 
