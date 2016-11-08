@@ -59,11 +59,11 @@ FAQ
 Q: How to send messages? Is there a way to get username autocompletion like in IRC?  
 A: Use `<ENTER>` to send messages. Use `<TAB>` to autocomplete usernames, example: `us` + `<TAB>` will give `user1`, then `user2`, etc. It also works with `@<username>`.
 
-Q: Is there a way to prevent a particular username from being used by anyone except me?  
-A: The username `admin` is available *if and only if* the username `adminxyz` is entered in the input box. Change `adminxyz` to a private password in the beginning of `talktalktalk.py`, and as a result **noone else than you will be able to use the username `admin`.**
-
 Q: How to find the date and time of the messages?  
 A: Hover over the messages, and a tooltip will show the date and time.
+
+Q: Is there a way to prevent a particular username from being used by anyone except me?  
+A: The username `admin` is available *if and only if* the username `adminxyz` is entered in the input box. Change `adminxyz` to a private password in the beginning of `talktalktalk.py`, and as a result *noone else than you will be able to use the username `admin`.*
 
 Q: Tech question: why use WebSocket instead of good old [polling](http://stackoverflow.com/a/12855533/1422096) method?  
 A: I use WebSocket because it allows good performance: having 100 users at the same time results in less than 1% CPU usage, on my small server. Before using WebSocket, I first tried with standard polling (i.e. every client requests changes from the server every 250 milliseconds), but benchmarks showed that having 100 users connected to the chat room at the same time was eating a 40% of CPU of my small web server. That was too much, thus the use of WebSocket that is far better.
