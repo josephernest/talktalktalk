@@ -1,7 +1,9 @@
 TalkTalkTalk
 =============
 
-[**TalkTalkTalk**](http://josephernest.github.io/talktalktalk) is an easy-to-install single-page chat room. No login required, no complex layout. Just chat.
+**TalkTalkTalk** is an easy-to-install single-page chat room. No login required, no complex layout. Just chat.
+
+[Live demo](http://185.164.138.19:7311/)
 
 ![](http://gget.it/husi2by3/screenshot1_575.jpg) ![](http://gget.it/k9oj75rs/screenshotphone_5.jpg)
 
