@@ -19,6 +19,7 @@ html { overflow-y: scroll; }
 #writing { width: 100%; height: 10%; position: fixed; height: 100px; bottom: 0; resize: none; border-top: 1px solid #aaa; }
 #wrapper { width: 75%; margin: 10px 10px 110px 10px; word-wrap: break-word; }
 #main a { text-decoration: none; color: inherit; }
+#main b { display: inline-block; } /* to prevent right to left utf8 characters */
 #right { width: 20%; top: 0; left: 80%; position: fixed; height: calc(100% - 120px); padding: 10px 0 10px 0; overflow-y: auto; overflow-x: hidden; }
 #username { padding: 2px 0 0px 1px; }
 .dashed { display: inline-block; border-bottom: 1px dashed #CCC; cursor: pointer; margin-bottom: 1px; }
@@ -33,7 +34,7 @@ html { overflow-y: scroll; }
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 </head>
 <body>
-<a id="banner" href="https://github.com/josephernest/talktalktalk"><img style="position: fixed; top: 0; right: 0; border: 0; width: 115px;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" id="fork"></a>
+<a id="banner" href="https://github.com/josephernest/talktalktalk" target="_blank"><img style="position: fixed; top: 0; right: 0; border: 0; width: 115px;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" id="fork"></a>
 <div id="right">
 TALKTALKTALK<br>############<br><br><br>
 <div id="notifications">NOTIFICATIONS<br><span id="notificationswitch" class="dashed">on</span><br><br></div>
@@ -201,8 +202,9 @@ function ready() {
                 return;
             }
             lastId = data['id'];
+            var isscrolledend = is_scrolled_end();
             $('#main').append('<p title="' + timeConverter(data['datetime']) + '"><b>' + data['username'] + '</b>: ' + add_urls(data['message']) + '</p>');
-            if (is_scrolled_end())
+            if (isscrolledend)
                 scroll_end();
             if (data['username'] !== $('#username').text() && data['username'] !== displayeduser && $('#notificationswitch').text() === 'on') {
                 popsound.load(); popsound.play();
@@ -232,7 +234,7 @@ function ready() {
             else
                 scroll_end();
         }
-        else if (data['type'] === 'userlist') {  // server sends the userlist to clients
+        else if (data['type'] === 'userlist') {
             users = data['connected'];
             $('#connected').html(users.join('<br>'));         // or .map(x => `${x}<br>`).join('')
         }
@@ -288,16 +290,17 @@ function ready() {
         }
     });
 
-    $('#usernameinput').on('blur', function(e){
-         if ($('#usernameinput').val().trim() !== '') 
-                $('#username').text($('#usernameinput').val());
-            else 
-                $('#username').text(randomname);
-            localStorage.setItem("username", $('#username').text());
-            $('#usernameinput').hide();
-            $('#username').show();
-            ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));
-            e.preventDefault();
+    $('#usernameinput').on('blur', function(e) {
+        var usr =  $('#usernameinput').val();
+        usr = usr.replace(/[:\s]/g, '');
+        if (usr === '')
+            usr = randomname;
+        $('#username').text(usr);
+        localStorage.setItem("username", usr);
+        $('#usernameinput').hide();
+        $('#username').show();
+        ws.send(JSON.stringify({ "type" : "username", "username" : usr }));
+        e.preventDefault();
     });
 
     $('#usernameinput').keydown(function(e) {
@@ -320,6 +323,5 @@ function ready() {
 $(document).ready(ready);
 
 </script>
-
 </body>
 </html>
