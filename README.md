@@ -71,12 +71,8 @@ A: I use WebSocket because it allows good performance: having 100 users at the s
 Q: Tech question: why use `dumbdbm` on server?  
 A: Because it works. If you know a Python database module that 1) stores data in a file (i.e. no database server needed), 2) is lightweight, 3) allows inserts / queries with a dictionary syntax (`db['hello'] = 'blah'`), and if possible allows integers as dictionary keys, I'm interested!
 
-Q: Tech question: How can I run the project inside a Docker container ?
-A: There is a Dockerfile in the root of the project directory. After clone, simply run the following
-```
-docker build -t talktalktalk .
-```
-Then the following command to run it as a container : 
+Q: Tech question: How can I run the project inside a Docker container?  
+A: There is a Dockerfile in the root of the project directory. After clone, simply run `docker build -t talktalktalk .`. Then the following command to run it as a container: 
 ```
 docker run -d --name=talktalktalk -p 9000:9000 talktalktalk
 ```
