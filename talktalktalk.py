@@ -138,9 +138,22 @@ def main():
         context = {'request': request}
         return (context)
 
-    @route('/popsound.mp3')
+    @route('/static/popsound.mp3')
     def popsound():
-        return static_file('popsound.mp3', root='.')        
+        return static_file('static/popsound.mp3', root='.')        
+
+    @route('/static/styles.css')
+    def css():
+        return static_file('static/styles.css', root='.')        
+
+    @route('/static/talktalktalk.js')
+    def js():
+        return static_file('static/talktalktalk.js', root='.')        
+
+## dunno why this doesn't work
+#	@route('/static/<filepath:path>')
+#	def server_static(filepath):
+#		return static_file(filepath, root='.')        
 
     run(host=HOST, port=PORT, debug=True, server=GeventWebSocketServer)
 
