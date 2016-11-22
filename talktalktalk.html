@@ -7,322 +7,39 @@
 # url:     http://github.com/josephernest/talktalktalk
 # license: MIT license
  -->
-
 <!DOCTYPE html>
-<html>
-<head>
-<title>TalkTalkTalk</title>
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />    
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style type="text/css">
-* { margin: 0; padding: 0; font-family: monospace; }
-html { overflow-y: scroll; }
-#writing { width: 100%; height: 10%; position: fixed; height: 100px; bottom: 0; resize: none; border-top: 1px solid #aaa; }
-#wrapper { width: 75%; margin: 10px 10px 110px 10px; word-wrap: break-word; }
-#main a { text-decoration: none; color: inherit; }
-#main b { display: inline-block; } /* to prevent right to left utf8 characters */
-#right { width: 20%; top: 0; left: 80%; position: fixed; height: calc(100% - 120px); padding: 10px 0 10px 0; overflow-y: auto; overflow-x: hidden; }
-#username { padding: 2px 0 0px 1px; }
-.dashed { display: inline-block; border-bottom: 1px dashed #CCC; cursor: pointer; margin-bottom: 1px; }
-#usernameinput { display: none; width: 80%; }
-#fork { z-index: 10; }
-#previous { margin-bottom: 20px; display: block; }
-#popup { z-index: 10; position: fixed; left: 20%; width:60%; top:40%; border: solid black 1px; background-color: white; text-align: center; padding: 30px 10px 30px 10px; color: black !important; }
-.hidden { display: none !important; }
-.opaque { color: #AAA; }
-@media (max-width: 500px) { #right { width: 120px; left: calc(100% - 120px); } #wrapper { width: calc(100% - 130px); } #banner { display: none; } }
-</style>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-</head>
-<body>
-<a id="banner" href="https://github.com/josephernest/talktalktalk" target="_blank"><img style="position: fixed; top: 0; right: 0; border: 0; width: 115px;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" id="fork"></a>
-<div id="right">
-TALKTALKTALK<br>############<br><br><br>
-<div id="notifications">NOTIFICATIONS<br><span id="notificationswitch" class="dashed">on</span><br><br></div>
-USERNAME<br><span id="username" class="dashed">user</span><input value="user1" id="usernameinput" maxlength="16" /><br><br>
-ONLINE USERS<div id="connected"></div>
-</div>
-<div id="wrapper">
-<a id="previous" href="" class="hidden">Load previous messages...</a>
-<div id="main">
-</div>
-</div>
-<textarea id="writing"></textarea>
-<div id="popup" class="hidden popup"></div>
-<script type="text/javascript">
-var popsound = new Audio('popsound.mp3');
-var randomname = 'user' + Math.floor((Math.random() * 1000) + 1);
-var displayeduser;
-var ws;
-var lastPong;
-var users;
-var firstId;
-var lastId;
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="TalkTalkTalk - is an easy-installable small chat room, with chat history.">
+    <meta name="author" content="Joseph Ernest (twitter: @JosephErnest)">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>TalkTalkTalk</title>
+    <link href="/static/styles.css" rel="stylesheet">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  </head>
+ 
+  <body>
+	<a id="banner" href="https://github.com/josephernest/talktalktalk" target="_blank">
+		<img style="position: fixed; top: 0; right: 0; border: 0; width: 115px;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" id="fork">
+	</a>
 
-function is_scrolled_end() { // See http://stackoverflow.com/a/40370876/1422096
-    return ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight);
-}
-
-function scroll_end () {
-    document.body.scrollTop = document.body.scrollHeight;                           // both useful because this one not working in FF47
-    document.documentElement.scrollTop = document.documentElement.scrollHeight;     // both useful because this one not working in Chrome 43 Android
-}
-
-function scroll_top () {
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-}    
-
-function add_urls(s) {
-    return s.replace(/(https?:\/\/[^ ]+)/g, '<a href="$1" target="_blank">$1</a>');
-}
-
-function timeConverter(t) {     // http://stackoverflow.com/a/40449006/1422096
-    if (t == null) 
-        return '';
-    var a = new Date(t * 1000);
-    var today = new Date();
-    var yesterday = new Date(Date.now() - 86400000);
-    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    var year = a.getFullYear();
-    var month = months[a.getMonth()];
-    var date = a.getDate();
-    var hour = a.getHours();
-    var min = a.getMinutes();
-    var time = ("0" + hour).slice(-2) + ':' + ("0" + min).slice(-2);
-    if (a.setHours(0,0,0,0) == today.setHours(0,0,0,0))
-        return 'today, ' + time;
-    else if (a.setHours(0,0,0,0) == yesterday.setHours(0,0,0,0))
-        return 'yesterday, ' + time;
-    else if (year == today.getFullYear())
-        return date + ' ' + month + ', ' + time;
-    else
-        return date + ' ' + month + ' ' + year + ', ' + time;
-}
-
-function mediaPlaybackRequiresUserGesture() { // http://stackoverflow.com/a/40474415/1422096
-  var audio = document.createElement('audio');
-  audio.play();
-  return audio.paused;
-}
-
-function ready() {
-    lastPong = undefined;
-    users = [];
-    firstId = Infinity;
-    lastId = -1;
-
-    if (mediaPlaybackRequiresUserGesture()) { // mobile devices require user gesture to trigger a play. "Notifications" off for them.
-        $('#notificationswitch').text('off');
-        $('#notifications').hide();
-    }
-
-    function disconnected_message () {
-        $('#popup').text('Click anywhere or press any key to reload the page.').removeClass('hidden');
-        $(':not(.popup)').addClass('opaque');
-        $(document).on('click keydown', function() { $(document).off('click keydown'); $(document).off('keydown'); ws.close(); ready(); })
-    }
-
-    function usernamechanged_message () {
-        $('#popup').text('Your username has been changed because the one you entered is reserved.').removeClass('hidden');
-        $(':not(.popup)').addClass('opaque');
-        $(document).on('click keydown', function() { $(document).off('click keydown'); $('#popup').addClass('hidden'); $(':not(#popup)').removeClass('opaque'); })
-    }    
-
-    if (!window.WebSocket) {
-        $('#popup').text('Your browser is not supported, please use another browser.').removeClass('hidden');
-        $('#writing').prop('disabled', true);
-        $(':not(#popup)').addClass('opaque');
-    }
-    else {
-        $('#main').text('');
-        $('#writing').val('');
-    }
-
-    if (localStorage.getItem("username") === null || localStorage.getItem("username") === '') {
-        $('#username').text(randomname);
-        localStorage.setItem("username", $('#username').text());
-    }
-    else 
-        $('#username').text(localStorage.getItem("username"));
-
-    ws = new WebSocket(location.href.replace('http', 'ws') + 'ws');        // replace replaces only the first occurence
-      
-    $(window).on('beforeunload', function() { 
-        ws.close(); 
-    });
-
-    ws.onopen = function() { 
-        ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));
-        lastPong = Date.now();
-        $('#popup').addClass('hidden'); $(':not(#popup)').removeClass('opaque');
-        $('#writing').focus();  
-        scroll_end();
-        setTimeout(function() { scroll_end(); }, 200);  // useful on touch devices, when keyboard opens
-    };
-
-    ws.onclose = function() { 
-        setTimeout(function() { 
-            if (ws.readyState != 0 && ws.readyState != 1)
-                disconnected_message();
-         }, 2000);
-    };    
-
-    setInterval(function() {
-        ws.send('ping');
-        if (Date.now() - lastPong > 10000) { // disconnected from internet or phone idle mode; in both cases, ws.readyState can be 1 (OPEN) so we can't use that
-            ws.send('ping');   // this is your last chance ! we send a packet now, and if in 1 second, nothings happen, this means we're dead
-            setTimeout( function() {
-                if (Date.now() - lastPong > 10000)  // you missed your last chance !
-                    disconnected_message();         // disconnected from internet
-                else                                // ok the phone was just idle, let's resume
-                    ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));  // let's send username again, so that other users see me
-            }, 1000);
-        }
-    }, 5000);
-
-    $('#previous').click(function(e) {
-        ws.send(JSON.stringify({'type': 'messagesbefore', 'id': firstId}));
-        e.preventDefault();
-        return false;
-    });
-
-    ws.onmessage = function(e) { 
-        lastPong = Date.now();
-        if (e['data'].slice(0,2) === 'id') {
-            var serverlastid = e['data'].slice(2);
-            if (serverlastid != lastId) { // some messages were lost
-                ws.send(JSON.stringify({'type': 'messagesafter', 'id': lastId}));
-            }
-            return;
-        }
-        var data = JSON.parse(e['data']);
-        if (data['type'] === 'message') {
-            if (data['id'] > lastId + 1) {  // some messages were lost
-                ws.send(JSON.stringify({'type': 'messagesafter', 'id': lastId}));
-                return;
-            }
-            lastId = data['id'];
-            var isscrolledend = is_scrolled_end();
-            $('#main').append('<p title="' + timeConverter(data['datetime']) + '"><b>' + data['username'] + '</b>: ' + add_urls(data['message']) + '</p>');
-            if (isscrolledend)
-                scroll_end();
-            if (data['username'] !== $('#username').text() && data['username'] !== displayeduser && $('#notificationswitch').text() === 'on') {
-                popsound.load(); popsound.play();
-            }
-        }
-        else if (data['type'] === 'messages') {
-            var newmessages = document.createDocumentFragment();
-            var messagelist = data['messages'];
-            for (var i = 0; i < messagelist.length; i++) {
-                var msg = JSON.parse(messagelist[i]);
-                if (data['before'] != 1 && msg['id'] <= lastId)       // message already added 
-                    continue;
-                $(newmessages).append('<p title="' + timeConverter(msg['datetime']) + '"><b>' + msg['username'] + '</b>: ' + add_urls(msg['message']) + '</p>');
-                firstId = Math.min(firstId, msg['id'])
-                lastId = Math.max(lastId, msg['id']);
-            }
-            if (data['before'] == 1)
-                $('#main').prepend(newmessages); 
-            else
-                $('#main').append(newmessages);
-            if (firstId > 0 && firstId != Infinity)
-                $('#previous').removeClass('hidden');
-            else
-                $('#previous').addClass('hidden');
-            if (data['before'] == 1)
-                scroll_top();
-            else
-                scroll_end();
-        }
-        else if (data['type'] === 'userlist') {
-            users = data['connected'];
-            $('#connected').html(users.join('<br>'));         // or .map(x => `${x}<br>`).join('')
-        }
-        else if (data['type'] === 'username') {  // server asks to (re)send username
-            ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));
-        }
-        else if (data['type'] === 'usernameunavailable') {
-            $('#username').text(data['username']);
-            localStorage.setItem("username", $('#username').text());
-            usernamechanged_message();
-        }
-        else if (data['type'] === 'displayeduser') {
-            displayeduser = data['username'];
-        }
-    };
-
-    $('#username').on('click', function(e) { 
-        $('#username').hide(); 
-        $('#usernameinput').val($('#username').text()).show().focus(); 
-        e.preventDefault(); 
-        return false; 
-    });
-
-    $('#writing').on('click', function(e) {             // trick for touch devices: when phone keyboard opens, we won't be scrolled-end anymore, so force it
-        if (is_scrolled_end())
-            setTimeout(function() { scroll_end(); }, 200);
-    });
-
-    $('#writing').keydown(function(e) {
-        if (e.keyCode == 13 && !e.shiftKey) {
-            ws.send(JSON.stringify({ type: 'message', username: $('#username').text(), message: $('#writing').val().trim() }));
-            $('#writing').val('');     
-            e.preventDefault();  
-        }
-        else if (e.keyCode == 9) {                   // see http://stackoverflow.com/a/40319943/1422096
-            var input = document.getElementById('writing');
-            var patt = /\b@?(\S+)$/;
-            e.preventDefault();
-            var start = input.selectionStart;
-            var seg = input.value.slice(0, start);
-            var match = (seg.match(patt) || [])[0];
-            if (!match) { return; }
-            var idx = users.findIndex(function (x) { return x.startsWith(match); });
-            if (idx < 0) { return; }
-            var replace = users[users[idx] === match ? (idx + 1) % users.length : idx];
-            var newSeg = seg.replace(patt, replace);
-            input.value = newSeg + input.value.slice(start);
-            input.setSelectionRange(newSeg.length, newSeg.length);
-        }
-        else if (e.keyCode == 33 || e.keyCode == 34) {   // alows to scroll with PAGE UP / DOWN even if textarea has focus
-            $('#writing').blur();
-            setTimeout(function() { $('#writing').focus(); }, 10);
-        }
-    });
-
-    $('#usernameinput').on('blur', function(e) {
-        var usr =  $('#usernameinput').val();
-        usr = usr.replace(/[:\s]/g, '');
-        if (usr === '')
-            usr = randomname;
-        $('#username').text(usr);
-        localStorage.setItem("username", usr);
-        $('#usernameinput').hide();
-        $('#username').show();
-        ws.send(JSON.stringify({ "type" : "username", "username" : usr }));
-        e.preventDefault();
-    });
-
-    $('#usernameinput').keydown(function(e) {
-        if (e.keyCode == 13) {
-            $('#usernameinput').blur();
-        }
-        if (e.keyCode == 27) {
-            $('#usernameinput').val($('#username').text()).hide();
-            $('#username').show();
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    $('#notificationswitch').click(function() {
-        $('#notificationswitch').text($('#notificationswitch').text() === 'on' ? 'off' : 'on');
-    });
-}
-
-$(document).ready(ready);
-
-</script>
-</body>
+	<div id="right">TALKTALKTALK<br>############<br><br><br>
+		<div id="notifications">NOTIFICATIONS<br>
+			<span id="notificationswitch" class="dashed">on</span><br><br>
+		</div>
+		USERNAME<br><span id="username" class="dashed">user</span><input value="user1" id="usernameinput" maxlength="16" /><br><br>ONLINE USERS
+		<div id="connected"></div>
+	</div>
+	
+	<div id="wrapper">
+		<a id="previous" href="" class="hidden">Load previous messages...</a>
+		<div id="main"></div>
+	</div>
+	<textarea id="writing"></textarea>
+	<div id="popup" class="hidden popup"></div>
+    <script src="/static/talktalktalk.js"></script>
+  </body>
 </html>

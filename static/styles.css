@@ -1,0 +1,16 @@
+* { margin: 0; padding: 0; font-family: monospace; }
+html { overflow-y: scroll; }
+#writing { width: 100%; height: 10%; position: fixed; height: 100px; bottom: 0; resize: none; border-top: 1px solid #aaa; }
+#wrapper { width: 75%; margin: 10px 10px 110px 10px; word-wrap: break-word; }
+#main a { text-decoration: none; color: inherit; }
+#main b { display: inline-block; } /* to prevent right to left utf8 characters */
+#right { width: 20%; top: 0; left: 80%; position: fixed; height: calc(100% - 120px); padding: 10px 0 10px 0; overflow-y: auto; overflow-x: hidden; }
+#username { padding: 2px 0 0px 1px; }
+.dashed { display: inline-block; border-bottom: 1px dashed #CCC; cursor: pointer; margin-bottom: 1px; }
+#usernameinput { display: none; width: 80%; }
+#fork { z-index: 10; }
+#previous { margin-bottom: 20px; display: block; }
+#popup { z-index: 10; position: fixed; left: 20%; width:60%; top:40%; border: solid black 1px; background-color: white; text-align: center; padding: 30px 10px 30px 10px; color: black !important; }
+.hidden { display: none !important; }
+.opaque { color: #AAA; }
+@media (max-width: 500px) { #right { width: 120px; left: calc(100% - 120px); } #wrapper { width: calc(100% - 130px); } #banner { display: none; } }
