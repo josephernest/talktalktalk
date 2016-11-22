@@ -16,7 +16,7 @@ from bottle import route, run, view, request, post, ServerAdapter, get, static_f
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.exceptions import WebSocketError
-from config import PORT, HOST, ADMINNAME, ADMINHIDDENNAME, BLEACH_ALLOWED_TAGS
+from config import PORT, HOST, ADMINNAME, ADMINHIDDENNAME, ALLOWEDTAGS
 
 idx = 0
 
@@ -44,8 +44,10 @@ def main():
                 u.send(json.dumps({'type' : 'userlist', 'connected': users.values()}))
 
     def clean_username(usr, ws):
-        username = bleach.clean(usr, tags=BLEACH_ALLOWED_TAGS, strip=True)
-        username = re.sub('[‍ :]', '', username)      # removes " ", ":", and the evil char "‍" http://unicode-table.com/fr/200D/
+        username = bleach.clean(usr, tags=ALLOWEDTAGS, strip=True)
+        #username = re.sub('[‍ :]', '', username)      # removes " ", ":", and the evil char "‍" http://unicode-table.com/fr/200D/
+        username = re.sub(r'\W+', '', username)       # because of spam and usage of malicious utf8 characters, let's use alphanumeric usernames only for now
+        username = username[:16]
         if username.lower() == ADMINNAME or username == '':
             username = 'user' + str(random.randint(0, 1000))
             ws.send(json.dumps({'type' : 'usernameunavailable', 'username' : username}))
@@ -89,7 +91,7 @@ def main():
                     else:
                         msg = json.loads(receivedmsg)
                         if msg['type'] == 'message':
-                            message = (bleach.clean(msg['message'], tags=BLEACH_ALLOWED_TAGS, strip=True)).strip()
+                            message = (bleach.clean(msg['message'], tags=ALLOWEDTAGS, strip=True)).strip()
 
                             if ws not in users:         # is this really mandatory ?
                                 username = clean_username(msg['username'], ws)       
