@@ -58,6 +58,7 @@ var lastPong;
 var users;
 var firstId;
 var lastId;
+var loop;
 
 function is_scrolled_end() { // See http://stackoverflow.com/a/40370876/1422096
     return ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight);
@@ -117,17 +118,14 @@ function ready() {
         $('#notifications').hide();
     }
 
-    function disconnected_message () {
-        $('#popup').text('Click anywhere or press any key to reload the page.').removeClass('hidden');
+    function popup_message (message, clicktoclosepopup, clicktoreload) {
+        $('#popup').text(message).removeClass('hidden');
         $(':not(.popup)').addClass('opaque');
-        $(document).on('click keydown', function() { $(document).off('click keydown'); $(document).off('keydown'); ws.close(); ready(); })
+        if (clicktoclosepopup)
+            $(document).on('click keydown', function() { $(document).off('click keydown'); $('#popup').addClass('hidden'); $(':not(#popup)').removeClass('opaque'); });
+        else if (clicktoreload)
+            $(document).on('click keydown', function() { $(document).off('click keydown'); $(document).off('keydown'); ws.close(); ready(); });
     }
-
-    function usernamechanged_message () {
-        $('#popup').text('Your username has been changed because the one you entered is reserved.').removeClass('hidden');
-        $(':not(.popup)').addClass('opaque');
-        $(document).on('click keydown', function() { $(document).off('click keydown'); $('#popup').addClass('hidden'); $(':not(#popup)').removeClass('opaque'); })
-    }    
 
     if (!window.WebSocket) {
         $('#popup').text('Your browser is not supported, please use another browser.').removeClass('hidden');
@@ -164,17 +162,17 @@ function ready() {
     ws.onclose = function() { 
         setTimeout(function() { 
             if (ws.readyState != 0 && ws.readyState != 1)
-                disconnected_message();
+                popup_message('Click anywhere or press any key to reload the page.', false, true);
          }, 2000);
     };    
 
-    setInterval(function() {
+    loop = setInterval(function() {
         ws.send('ping');
         if (Date.now() - lastPong > 10000) { // disconnected from internet or phone idle mode; in both cases, ws.readyState can be 1 (OPEN) so we can't use that
             ws.send('ping');   // this is your last chance ! we send a packet now, and if in 1 second, nothings happen, this means we're dead
             setTimeout( function() {
                 if (Date.now() - lastPong > 10000)  // you missed your last chance !
-                    disconnected_message();         // disconnected from internet
+                    popup_message('Click anywhere or press any key to reload the page.', false, true);     // disconnected from internet
                 else                                // ok the phone was just idle, let's resume
                     ws.send(JSON.stringify({ "type" : "username", "username" : $('#username').text() }));  // let's send username again, so that other users see me
             }, 1000);
@@ -245,7 +243,13 @@ function ready() {
         else if (data['type'] === 'usernameunavailable') {
             $('#username').text(data['username']);
             localStorage.setItem("username", $('#username').text());
-            usernamechanged_message();
+            popup_message('Your username has been changed because the one you entered is reserved.', true, false);
+        }
+        else if (data['type'] === 'flood') {
+            popup_message('Please do not flood this chat.', false, false);
+            ws.onclose = undefined;
+            clearInterval(loop);
+            ws.close();
         }
         else if (data['type'] === 'displayeduser') {
             displayeduser = data['username'];
@@ -266,7 +270,8 @@ function ready() {
 
     $('#writing').keydown(function(e) {
         if (e.keyCode == 13 && !e.shiftKey) {
-            ws.send(JSON.stringify({ type: 'message', username: $('#username').text(), message: $('#writing').val().trim() }));
+            if ($('#writing').val().trim() !== '')
+                ws.send(JSON.stringify({ type: 'message', username: $('#username').text(), message: $('#writing').val().trim() }));
             $('#writing').val('');     
             e.preventDefault();  
         }

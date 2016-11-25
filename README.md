@@ -62,6 +62,9 @@ A: Use `<ENTER>` to send messages. Use `<TAB>` to autocomplete usernames, exampl
 Q: How to find the date and time of the messages?  
 A: Hover over the messages, and a tooltip will show the date and time.
 
+Q: Is there a flood control feature?  
+A: The chat has a very basic flood control: a user cannot send more than 10 messages in 5 seconds.
+
 Q: Is there a way to prevent a particular username from being used by anyone except me?  
 A: The username `admin` is available *if and only if* the username `adminxyz` is entered in the input box. Change `adminxyz` to a private password in the beginning of `talktalktalk.py`, and as a result *noone else than you will be able to use the username `admin`.*
 
