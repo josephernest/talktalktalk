@@ -16,6 +16,7 @@ from bottle import route, run, view, request, post, ServerAdapter, get, static_f
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.exceptions import WebSocketError
+from collections import deque
 from config import PORT, HOST, ADMINNAME, ADMINHIDDENNAME, ALLOWEDTAGS
 
 idx = 0
@@ -37,6 +38,7 @@ def main():
 
     users = {}
     pings = {}
+    usermessagetimes = {}
 
     def send_userlist():
         for u in users.keys():
@@ -76,20 +78,32 @@ def main():
     @get('/ws', apply=[websocket])
     def chat(ws):
         global idx
+        usermessagetimes[ws] = deque(maxlen=10)
         while True:
             try:
                 receivedmsg = ws.receive()
                 if receivedmsg is not None:
+
                     receivedmsg = receivedmsg.decode('utf8')
                     if len(receivedmsg) > 4096:      # this user is probably a spammer
+                        ws.send(json.dumps({'type' : 'flood'}))
                         break
+
                     pings[ws] = time.time()
+
                     if receivedmsg == 'ping':         # ping/pong packet to make sure connection is still alive
                         ws.send('id' + str(idx-1))    # send the latest message id in return
                         if ws not in users:           # was deleted by dbworker
                             ws.send(json.dumps({'type' : 'username'}))
                     else:
+                        usermessagetimes[ws].append(time.time())                           # flood control
+                        if len(usermessagetimes[ws]) == usermessagetimes[ws].maxlen:
+                            if usermessagetimes[ws][-1] - usermessagetimes[ws][0] < 5:     # if more than 10 messages in 5 seconds (including ping messages)
+                                ws.send(json.dumps({'type' : 'flood'}))                    # disconnect the spammer
+                                break
+
                         msg = json.loads(receivedmsg)
+
                         if msg['type'] == 'message':
                             message = (bleach.clean(msg['message'], tags=ALLOWEDTAGS, strip=True)).strip()
 

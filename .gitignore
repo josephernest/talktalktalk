@@ -1,0 +1,5 @@
+*.pyc
+_.pid
+talktalktalk.db.dat
+talktalktalk.db.dir
+log.txt
