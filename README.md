@@ -45,8 +45,15 @@ About
 ----
 Author: Joseph Ernest ([@JosephErnest](http:/twitter.com/JosephErnest))
 
-Other projects: [BigPicture](http://bigpicture.bi), [bigpicture.js](https://github.com/josephernest/bigpicture.js), [SamplerBox](http://www.samplerbox.org), [Void](http://www.thisisvoid.org), [YellowNoiseAudio](http://www.yellownoiseaudio.com), [0Doc](https://github.com/josephernest/0Doc), etc.
+Other projects: [BigPicture](https://bigpictu.re), [bigpicture.js](https://github.com/josephernest/bigpicture.js), [SamplerBox](https://www.samplerbox.org), [Void CMS](https://github.com/josephernest/void), [YellowNoiseAudio](https://www.yellownoiseaudio.com), etc.
 
+Sponsoring and consulting
+----
+I am available for Python, Data science, ML, Automation consulting. Please contact me on https://afewthingz.com for freelancing requests.
+
+Do you want to support the development of my open-source projects? Please contact me!
+
+I am currently sponsored by [CodeSigningStore.com](https://codesigningstore.com). Thank you to them for providing a DigiCert Code Signing Certificate and supporting open source software.
 
 License
 ----
